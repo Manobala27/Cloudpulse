@@ -1,0 +1,129 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  validate-python:
+    name: Python CI (Lint & Test)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -r backend/src/requirements.txt
+
+      - name: Run Black Check
+        run: black --check .
+
+      - name: Run Ruff Lint
+        run: ruff check .
+
+      - name: Run Pytest
+        run: python -m pytest backend/
+
+  validate-sam:
+    name: AWS SAM Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-container: false
+
+      - name: SAM Validate
+        run: sam validate --template infrastructure/template.yaml
+
+      - name: SAM Build
+        run: sam build --template infrastructure/template.yaml
+
+  validate-frontend:
+    name: Frontend Lint & Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Validate HTML
+        run: npm run lint:html
+
+      - name: Validate CSS
+        run: npm run lint:css
+
+      - name: Validate JavaScript
+        run: npm run lint:js
+
+  deploy:
+    name: Continuous Deployment (AWS SAM)
+    needs: [validate-python, validate-sam, validate-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-container: false
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: SAM Build for Deployment
+        run: sam build --template infrastructure/template.yaml
+
+      - name: SAM Deploy (Automatic)
+        run: |
+          sam deploy \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --stack-name cloudpulse \
+            --resolve-s3 \
+            --s3-prefix cloudpulse \
+            --region ${{ secrets.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides Environment=dev AlertEmail=admin@example.com JwtSecret=${{ secrets.JWT_SECRET }}

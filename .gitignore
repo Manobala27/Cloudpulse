@@ -1,0 +1,36 @@
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# AWS SAM
+.aws-sam/
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# MacOS
+.DS_Store
+
+# Python dev cache
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node modules
+node_modules/
+
+# Local task/command logs
+*.log

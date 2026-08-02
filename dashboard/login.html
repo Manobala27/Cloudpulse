@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudPulse - Login</title>
+    <link rel="stylesheet" href="css/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="split-container">
+        <!-- Left Panel: Brand Accent & Features -->
+        <section class="left-panel" aria-label="CloudPulse Information">
+            <div class="left-header">
+                <div class="left-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.0147 19.9853 10 17.5 10C17.1558 10 16.8206 10.0386 16.5 10.1121C16.1438 7.23447 13.7915 5 10.875 5C7.63233 5 5 7.63233 5 10.875C5 10.9702 5.00226 11.0649 5.00673 11.159C2.75338 11.6603 1 13.6309 1 16C1 18.7614 3.23858 21 6 21H17.5V19Z" fill="rgba(255,255,255,0.1)"/>
+                        <path d="M12 12v4M9 14h6" />
+                    </svg>
+                </div>
+                <h1 class="left-title">CloudPulse</h1>
+            </div>
+            
+            <div class="left-content">
+                <div class="hero-text">
+                    <h2>Real-Time Serverless Log Analytics</h2>
+                    <p>Monitor, query, and alert on application behavior across your serverless infrastructure in real time.</p>
+                </div>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Buffered Ingestion</h4>
+                            <p>Direct AWS SQS queue ingestion mitigates log traffic surges without API bottlenecks.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Intelligent Event Processing</h4>
+                            <p>Real-time log parsing, enrichment, and structured indexing via Lambda to DynamoDB.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Instant Alerting</h4>
+                            <p>Automated warning/error evaluation with immediate SMS/Email notification broadcasts.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="left-footer">
+                &copy; 2026 CloudPulse Platform. All rights reserved.
+            </div>
+        </section>
+        
+        <!-- Right Panel: Login Action Form Card -->
+        <main class="right-panel">
+            <div class="login-card">
+                <div class="login-header">
+                    <h3>Sign In</h3>
+                    <p>Enter your administrator credentials to continue</p>
+                </div>
+                
+                <div id="error-message" class="error-message hidden" role="alert">
+                    Invalid credentials
+                </div>
+                
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </span>
+                            <input type="text" id="username" name="username" class="input-field" placeholder="admin" required autofocus autocomplete="username" aria-required="true">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                            </span>
+                            <input type="password" id="password" name="password" class="input-field" placeholder="••••••••" required autocomplete="current-password" aria-required="true">
+                            <button type="button" id="toggle-password-btn" class="toggle-password" title="Show password" aria-label="Show password">
+                                <svg id="toggle-password-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-options">
+                        <label class="remember-me">
+                            <input type="checkbox" id="remember">
+                            Remember Me
+                        </label>
+                        <a href="#" class="forgot-password" tabindex="0">Forgot Password?</a>
+                    </div>
+                    
+                    <button type="submit" id="login-btn" class="login-btn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-spinner hidden"></span>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

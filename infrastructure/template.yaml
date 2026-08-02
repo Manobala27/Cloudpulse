@@ -1,0 +1,933 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  CloudPulse Core Infrastructure
+  Module 2: Core AWS Resources (No compute logic yet)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    Description: Deployment environment (dev/prod)
+  AlertEmail:
+    Type: String
+    Description: Email address for SNS Alerts
+    Default: admin@example.com
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Description: Secret key for JWT signature
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Globals:
+  Function:
+    Tracing: Active
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: "CloudPulse"
+        POWERTOOLS_METRICS_NAMESPACE: "CloudPulse"
+        LOG_LEVEL: "INFO"
+  Api:
+    TracingEnabled: true
+
+Resources:
+  # 1. API Gateway
+  CloudPulseApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      AlwaysDeploy: true
+      StageName: !Ref Environment
+      Name: !Sub "cloudpulse-api-${Environment}"
+      Description: "API Gateway for CloudPulse log ingestion"
+      DefinitionBody:
+        openapi: '3.0.1'
+        info:
+          title: !Sub "cloudpulse-api-${Environment}"
+          version: '1.0'
+        paths:
+          /logs:
+            post:
+              summary: "Ingest Logs"
+              responses:
+                "202":
+                  description: "Accepted"
+              x-amazon-apigateway-integration:
+                type: "aws"
+                credentials: !GetAtt ApiGatewaySqsRole.Arn
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:sqs:path/${AWS::AccountId}/${LogProcessingQueue.QueueName}"
+                httpMethod: "POST"
+                requestParameters:
+                  integration.request.header.Content-Type: "'application/x-www-form-urlencoded'"
+                requestTemplates:
+                  application/json: "Action=SendMessage&MessageBody=$util.urlEncode($input.body)"
+                responses:
+                  default:
+                    statusCode: "202"
+            get:
+              summary: "Get Logs"
+              security:
+                - CloudPulseAuthorizer: []
+              responses:
+                "200":
+                  description: "OK"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LogQueryFunction.Arn}/invocations"
+            options:
+              summary: "CORS support"
+              responses:
+                "200":
+                  description: "Default response for CORS method"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+          /logs/service/{service_name}:
+            get:
+              summary: "Get Logs by Service"
+              security:
+                - CloudPulseAuthorizer: []
+              parameters:
+                - name: service_name
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              responses:
+                "200":
+                  description: "OK"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LogQueryFunction.Arn}/invocations"
+            options:
+              summary: "CORS support"
+              responses:
+                "200":
+                  description: "Default response for CORS method"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+          /logs/level/{level}:
+            get:
+              summary: "Get Logs by Level"
+              security:
+                - CloudPulseAuthorizer: []
+              parameters:
+                - name: level
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              responses:
+                "200":
+                  description: "OK"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LogQueryFunction.Arn}/invocations"
+            options:
+              summary: "CORS support"
+              responses:
+                "200":
+                  description: "Default response for CORS method"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+          /health:
+            get:
+              summary: "Health Check"
+              security:
+                - CloudPulseAuthorizer: []
+              responses:
+                "200":
+                  description: "OK"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LogQueryFunction.Arn}/invocations"
+            options:
+              summary: "CORS support"
+              responses:
+                "200":
+                  description: "Default response for CORS method"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+          /login:
+            post:
+              summary: "Login"
+              responses:
+                "200":
+                  description: "OK"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginFunction.Arn}/invocations"
+            options:
+              summary: "CORS support"
+              responses:
+                "200":
+                  description: "Default response for CORS method"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        components:
+          securitySchemes:
+            CloudPulseAuthorizer:
+              type: apiKey
+              name: Authorization
+              in: header
+              x-amazon-apigateway-authtype: custom
+              x-amazon-apigateway-authorizer:
+                type: token
+                authorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiGatewayAuthorizer.Arn}/invocations"
+                identityValidationExpression: "^Bearer [-0-9a-zA-z\\.]*$"
+
+  # 1.5 API Gateway IAM Role for SQS Integration
+  ApiGatewaySqsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "cloudpulse-apigw-sqs-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "cloudpulse-apigw-sqs-policy-${Environment}"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt LogProcessingQueue.Arn
+
+  # 2. Dead Letter Queue (DLQ)
+  LogProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "cloudpulse-logs-dlq-${Environment}"
+
+  # 3. Main SQS Queue
+  LogProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "cloudpulse-logs-queue-${Environment}"
+      VisibilityTimeout: 30
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt LogProcessingDLQ.Arn
+        maxReceiveCount: 3
+
+  # 4. DynamoDB Table
+  LogStorageTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "cloudpulse-logs-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: service_name
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: service_name
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  # 5. SNS Topic
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "cloudpulse-alerts-${Environment}"
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlertEmail
+
+  # 6. IAM Role for the Future Lambda Processor
+  LogProcessorExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "cloudpulse-processor-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub "cloudpulse-processor-policy-${Environment}"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt LogProcessingQueue.Arn
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt LogStorageTable.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref AlertTopic
+
+  # 7. Log Processor Lambda
+  LogProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "cloudpulse-processor-${Environment}"
+      CodeUri: ../backend/src/
+      Handler: log_processor.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LogProcessorExecutionRole.Arn
+      MemorySize: 256
+      Timeout: 15
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref LogStorageTable
+          SNS_TOPIC_ARN: !Ref AlertTopic
+      Events:
+        SQSBatch:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt LogProcessingQueue.Arn
+            BatchSize: 10
+
+  # 8. IAM Role for Log Query Lambda
+  LogQueryExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "cloudpulse-query-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub "cloudpulse-query-policy-${Environment}"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !GetAtt LogStorageTable.Arn
+
+  # IAM Role for Login Lambda
+  LoginExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "cloudpulse-login-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # IAM Role for Authorizer Lambda
+  AuthorizerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "cloudpulse-authorizer-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # 9. Log Query Lambda
+  LogQueryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "cloudpulse-query-${Environment}"
+      CodeUri: ../backend/src/
+      Handler: log_query.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LogQueryExecutionRole.Arn
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref LogStorageTable
+      Events:
+        GetLogs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPulseApi
+            Path: /logs
+            Method: GET
+        GetLogsByService:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPulseApi
+            Path: /logs/service/{service_name}
+            Method: GET
+        GetLogsByLevel:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPulseApi
+            Path: /logs/level/{level}
+            Method: GET
+        GetHealth:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPulseApi
+            Path: /health
+            Method: GET
+
+  # 10. Login Lambda Function
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "cloudpulse-login-${Environment}"
+      CodeUri: ../backend/src/
+      Handler: login.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LoginExecutionRole.Arn
+      MemorySize: 256
+      Timeout: 10
+
+      Environment:
+        Variables:
+          DEMO_USERNAME: "admin"
+          DEMO_PASSWORD_HASH: "$2b$12$T7WZHszkkKKwlAWasIn5rewrc0eWCPiL73Dw5P67Ozo4CbAa7HChS"
+          JWT_SECRET: !Ref JwtSecret
+
+      Events:
+        Login:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CloudPulseApi
+            Path: /login
+            Method: POST
+  # 11. API Gateway Authorizer Lambda
+  ApiGatewayAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "cloudpulse-authorizer-${Environment}"
+      CodeUri: ../backend/src/
+      Handler: authorizer.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt AuthorizerExecutionRole.Arn
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JwtSecret
+
+  # 12. Lambda Permission for API Gateway Authorizer
+  AuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt ApiGatewayAuthorizer.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CloudPulseApi}/authorizers/*"
+
+  # 13. Lambda Permissions for Login Function
+  LoginPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LoginFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${CloudPulseApi}/*/*/login"
+
+
+  # ==========================================
+  # MODULE 10: MONITORING & OBSERVABILITY
+  # ==========================================
+
+  CloudPulseDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "CloudPulse-Dashboard-${Environment}"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0, "y": 0, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Lambda", "Invocations", "FunctionName", "${LogProcessorFunction}" ],
+                  [ ".", ".", ".", "${LogQueryFunction}" ],
+                  [ ".", ".", ".", "${LoginFunction}" ],
+                  [ ".", ".", ".", "${ApiGatewayAuthorizer}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Lambda Invocations"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 0, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Lambda", "Errors", "FunctionName", "${LogProcessorFunction}" ],
+                  [ ".", ".", ".", "${LogQueryFunction}" ],
+                  [ ".", ".", ".", "${LoginFunction}" ],
+                  [ ".", ".", ".", "${ApiGatewayAuthorizer}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Lambda Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 6, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Lambda", "Duration", "FunctionName", "${LogProcessorFunction}", { "stat": "Average" } ],
+                  [ ".", ".", ".", "${LogQueryFunction}", { "stat": "Average" } ],
+                  [ ".", ".", ".", "${LoginFunction}", { "stat": "Average" } ],
+                  [ ".", ".", ".", "${ApiGatewayAuthorizer}", { "stat": "Average" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Average Duration"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 6, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "CloudPulse", "ColdStart", "FunctionName", "${LogProcessorFunction}" ],
+                  [ ".", ".", ".", "${LogQueryFunction}" ],
+                  [ ".", ".", ".", "${LoginFunction}" ],
+                  [ ".", ".", ".", "${ApiGatewayAuthorizer}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Cold Starts"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 12, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Lambda", "ConcurrentExecutions", "FunctionName", "${LogProcessorFunction}" ],
+                  [ ".", ".", ".", "${LogQueryFunction}" ],
+                  [ ".", ".", ".", "${LoginFunction}" ],
+                  [ ".", ".", ".", "${ApiGatewayAuthorizer}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Concurrent Executions"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 12, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/ApiGateway", "Count", "ApiName", "${CloudPulseApi}" ],
+                  [ ".", "4XXError", ".", "." ],
+                  [ ".", "5XXError", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "API Requests & Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 18, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/ApiGateway", "Latency", "ApiName", "${CloudPulseApi}", { "stat": "Average" } ],
+                  [ ".", "IntegrationLatency", ".", ".", { "stat": "Average" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "API Latency"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 18, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "CloudPulse", "LoginSuccess", "service", "login-service" ],
+                  [ ".", "LoginFailure", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Authentication Activity"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 24, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "CloudPulse", "TotalLogsProcessed", "service", "log-processor" ],
+                  [ ".", "FailedProcessing", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Log Processing Rate"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 24, "width": 12, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/SNS", "NumberOfMessagesPublished", "TopicName", "${AlertTopic.TopicName}" ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "SNS Alerts"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 30, "width": 24, "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${LogStorageTable}" ],
+                  [ ".", "ConsumedWriteCapacityUnits", ".", "." ],
+                  [ ".", "ReadThrottleEvents", ".", "." ],
+                  [ ".", "WriteThrottleEvents", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Activity"
+              }
+            }
+          ]
+        }
+
+  AlarmLambdaErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-LambdaErrors-${Environment}"
+      AlarmDescription: "Alarm if Lambda errors occur"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LogProcessorFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmHighErrorRate:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-HighErrorRate-${Environment}"
+      AlarmDescription: "Alarm if API Gateway 5XX errors > 5%"
+      Namespace: AWS/ApiGateway
+      MetricName: 5XXError
+      Dimensions:
+        - Name: ApiName
+          Value: !Ref CloudPulseApi
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmLambdaDuration:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-LambdaDuration-${Environment}"
+      AlarmDescription: "Alarm if Log Processor takes > 5s"
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LogProcessorFunction
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 5000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AlarmLambdaThrottles:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-LambdaThrottles-${Environment}"
+      AlarmDescription: "Alarm if Lambdas are throttled"
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LogProcessorFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmDLQMessages:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-DLQMessages-${Environment}"
+      AlarmDescription: "Alarm if messages enter DLQ"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt LogProcessingDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmSQSQueueDepth:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-SQSQueueDepth-${Environment}"
+      AlarmDescription: "Alarm if SQS backlog is high"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt LogProcessingQueue.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 100
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmApiGateway4XX:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-Api4XXSpike-${Environment}"
+      AlarmDescription: "Alarm for API 4XX spikes"
+      Namespace: AWS/ApiGateway
+      MetricName: 4XXError
+      Dimensions:
+        - Name: ApiName
+          Value: !Ref CloudPulseApi
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 50
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmDynamoDBThrottles:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-DynamoDBThrottles-${Environment}"
+      AlarmDescription: "Alarm for DynamoDB Write Throttles"
+      Namespace: AWS/DynamoDB
+      MetricName: WriteThrottleEvents
+      Dimensions:
+        - Name: TableName
+          Value: !Ref LogStorageTable
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AlarmAuthFailures:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "CloudPulse-AuthFailures-${Environment}"
+      AlarmDescription: "Alarm for excessive login failures"
+      Namespace: CloudPulse
+      MetricName: LoginFailure
+      Dimensions:
+        - Name: service
+          Value: login-service
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  # Explicit Log Groups for Lambdas (Cost & Retention optimization)
+  LogProcessorFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/cloudpulse-processor-${Environment}"
+      RetentionInDays: !If [IsProd, 90, 14]
+
+  LogQueryFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/cloudpulse-query-${Environment}"
+      RetentionInDays: !If [IsProd, 90, 14]
+
+  LoginFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/cloudpulse-login-${Environment}"
+      RetentionInDays: !If [IsProd, 90, 14]
+
+  ApiGatewayAuthorizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/cloudpulse-authorizer-${Environment}"
+      RetentionInDays: !If [IsProd, 90, 14]
+
+Outputs:
+
+  ApiId:
+    Description: "API Gateway ID"
+    Value: !Ref CloudPulseApi
+  LogProcessingQueueArn:
+    Description: "ARN of the Main Log Processing Queue"
+    Value: !GetAtt LogProcessingQueue.Arn
+  LogProcessingDLQArn:
+    Description: "ARN of the Dead Letter Queue"
+    Value: !GetAtt LogProcessingDLQ.Arn
+  LogStorageTableName:
+    Description: "Name of the DynamoDB Table"
+    Value: !Ref LogStorageTable
+  AlertTopicArn:
+    Description: "ARN of the SNS Topic"
+    Value: !Ref AlertTopic
+  ProcessorRoleArn:
+    Description: "ARN of the Processor Lambda Role"
+    Value: !GetAtt LogProcessorExecutionRole.Arn

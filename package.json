@@ -1,0 +1,17 @@
+{
+  "name": "cloudpulse-devops",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "lint:html": "htmlhint \"dashboard/**/*.html\"",
+    "lint:css": "stylelint \"dashboard/css/**/*.css\"",
+    "lint:js": "eslint \"dashboard/js/**/*.js\"",
+    "lint:frontend": "npm run lint:html && npm run lint:css && npm run lint:js"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "htmlhint": "^1.0.0",
+    "stylelint": "^16.6.1",
+    "stylelint-config-standard": "^36.0.1"
+  }
+}

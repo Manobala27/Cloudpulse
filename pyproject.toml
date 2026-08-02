@@ -1,0 +1,71 @@
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    ".aws-sam",
+    "scratch"
+]
+
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.12
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable Pyflakes (F) and pycodestyle (E, W) codes by default. Also enable isort (I)
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+# Allow fix for all enabled rules (when `--fix` is passed)
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/*" = ["E402"]
+
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.nox
+    | \.tox
+    | \.venv
+    | \.aws-sam
+    | _build
+    | buck-out
+    | build
+    | dist
+    | scratch
+  )/
+)
+'''

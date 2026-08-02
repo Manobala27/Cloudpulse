@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudPulse - Enterprise Serverless Log Analytics</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Collapsible Sidebar -->
+        <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
+            <div class="sidebar-brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.0147 19.9853 10 17.5 10C17.1558 10 16.8206 10.0386 16.5 10.1121C16.1438 7.23447 13.7915 5 10.875 5C7.63233 5 5 7.63233 5 10.875C5 10.9702 5.00226 11.0649 5.00673 11.159C2.75338 11.6603 1 13.6309 1 16C1 18.7614 3.23858 21 6 21H17.5V19Z"/>
+                        <path d="M12 12v4M9 14h6" />
+                    </svg>
+                </div>
+                <span class="brand-name">CloudPulse</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-item active" id="nav-dashboard" aria-label="Dashboard Overview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="9" rx="1"/>
+                        <rect x="14" y="3" width="7" height="5" rx="1"/>
+                        <rect x="14" y="12" width="7" height="9" rx="1"/>
+                        <rect x="3" y="16" width="7" height="5" rx="1"/>
+                    </svg>
+                    <span class="nav-label">Dashboard</span>
+                </button>
+                <button class="nav-item" id="nav-explorer" aria-label="Logs search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <circle cx="11" cy="11" r="8"/>
+                    </svg>
+                    <span class="nav-label">Explorer</span>
+                </button>
+                <button class="nav-item" id="nav-alarms" aria-label="Alarms">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="nav-label">Alarms</span>
+                </button>
+                <button class="nav-item" id="nav-settings" aria-label="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button class="collapse-toggle" id="sidebar-toggle" aria-label="Toggle Sidebar Menu">
+                    <svg id="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                        <polyline points="11 17 6 12 11 7"/>
+                        <polyline points="18 17 13 12 18 7"/>
+                    </svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Display Panel -->
+        <div class="main-panel">
+            <header class="main-header">
+                <div class="header-left">
+                    <button class="mobile-menu-toggle" id="mobile-toggle" aria-label="Open Navigation Menu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <div class="header-title">
+                        <h1 id="view-title">Dashboard Overview</h1>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="badge-container">
+                        <span class="badge-env" id="header-env-badge" aria-label="Environment: DEV">DEV</span>
+                        <span class="badge-region" id="header-region-badge" aria-label="AWS Region: ap-south-1">ap-south-1</span>
+                    </div>
+                    
+                    <div class="status-indicator">
+                        <span class="status-dot healthy" id="status-dot"></span>
+                        <span id="health-status">Checking Health...</span>
+                    </div>
+                    
+                    <div class="header-actions">
+                        <div class="time-info hidden">
+                            <span id="current-time"></span>
+                            <span id="last-refresh"></span>
+                        </div>
+                        <button id="nav-refresh-btn" class="icon-btn" title="Refresh Dashboard" aria-label="Refresh Dashboard">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                                <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Notifications Trigger -->
+                        <div class="notification-wrapper">
+                            <button id="nav-notifications-btn" class="icon-btn" title="Notifications" aria-label="Open Notifications">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                </svg>
+                                <span class="notification-badge hidden" id="notification-count"></span>
+                            </button>
+                            <!-- Dropdown Box -->
+                            <div class="notifications-dropdown hidden" id="notifications-dropdown">
+                                <div class="dropdown-header">
+                                    <h3>System Alerts</h3>
+                                    <button id="clear-notifications" class="text-btn">Clear All</button>
+                                </div>
+                                <div class="dropdown-list" id="notifications-list">
+                                    <div class="notification-empty">No active notifications</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile chip -->
+                        <div class="profile-container">
+                            <div class="user-profile" id="profile-chip">
+                                <div class="avatar" id="user-avatar" aria-label="User profile">A</div>
+                                <span class="username-label" id="username-display">Admin</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                            
+                            <!-- Profile dropdown -->
+                            <div class="profile-dropdown hidden" id="profile-dropdown">
+                                <div class="dropdown-user-details">
+                                    <h4 id="dropdown-user-name">Administrator</h4>
+                                    <p>AWS Root Admin</p>
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <button class="dropdown-item" id="btn-dropdown-settings">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                    </svg>
+                                    Settings
+                                </button>
+                                <button class="dropdown-item logout" id="logout-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                                    </svg>
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="dashboard-container slide-up">
+                <!-- Global Error Panel -->
+                <div id="error-panel" class="error-panel hidden" role="alert">
+                    <div class="error-content">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <div class="error-text">
+                            <h3>Unable to connect to CloudPulse API</h3>
+                            <p>Please check your connection or start the local API Gateway (python local_backend.py).</p>
+                        </div>
+                    </div>
+                    <button id="retry-btn" class="btn primary-btn">Retry Connection</button>
+                </div>
+
+                <!-- VIEW 1: DASHBOARD OVERVIEW -->
+                <div id="view-dashboard-panel" class="spa-view">
+                    <!-- KPI Cards Grid -->
+                    <section class="kpi-grid" aria-label="Key Performance Indicators">
+                        <div class="kpi-card total-card fade-in">
+                            <div class="kpi-header">
+                                <span class="kpi-title">TOTAL LOGS</span>
+                                <span class="kpi-icon-svg total">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-total">0</div>
+                            <div class="kpi-desc">All ingested telemetry rows</div>
+                        </div>
+                        <div class="kpi-card info-card fade-in" style="animation-delay: 0.05s">
+                            <div class="kpi-header">
+                                <span class="kpi-title">INFO LOGS</span>
+                                <span class="kpi-icon-svg info">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-info">0</div>
+                            <div class="kpi-desc">Standard service events</div>
+                        </div>
+                        <div class="kpi-card warning-card fade-in" style="animation-delay: 0.1s">
+                            <div class="kpi-header">
+                                <span class="kpi-title">WARNINGS</span>
+                                <span class="kpi-icon-svg warning">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-warning">0</div>
+                            <div class="kpi-desc">Non-fatal performance delays</div>
+                        </div>
+                        <div class="kpi-card error-card fade-in" style="animation-delay: 0.15s">
+                            <div class="kpi-header">
+                                <span class="kpi-title">ERRORS</span>
+                                <span class="kpi-icon-svg error">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-error">0</div>
+                            <div class="kpi-desc">Application runtime errors</div>
+                        </div>
+                        <div class="kpi-card critical-card fade-in" style="animation-delay: 0.2s">
+                            <div class="kpi-header">
+                                <span class="kpi-title">CRITICALS</span>
+                                <span class="kpi-icon-svg critical">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-critical">0</div>
+                            <div class="kpi-desc">Actionable service outages</div>
+                        </div>
+                    </section>
+    
+                    <!-- Monitoring Status Row -->
+                    <section class="kpi-grid health-grid fade-in" style="animation-delay: 0.25s" aria-label="System Health Monitor">
+                        <div class="kpi-card system-card">
+                            <div class="kpi-header">
+                                <span class="kpi-title">SYSTEM STATUS</span>
+                                <span class="kpi-icon-svg status">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-health">Checking...</div>
+                            <div class="kpi-desc" id="kpi-health-desc">Connecting to API endpoints...</div>
+                        </div>
+                        <div class="kpi-card recent-errors-card">
+                            <div class="kpi-header">
+                                <span class="kpi-title">ERRORS (24H)</span>
+                                <span class="kpi-icon-svg warning">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-recent-errors">0</div>
+                            <div class="kpi-desc">Aggregated warnings/errors</div>
+                        </div>
+                        <div class="kpi-card auth-metrics-card">
+                            <div class="kpi-header">
+                                <span class="kpi-title">AUTH ISSUES</span>
+                                <span class="kpi-icon-svg lock">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-auth-failures">0</div>
+                            <div class="kpi-desc">Blocked unauthorized requests</div>
+                        </div>
+                        <div class="kpi-card lambda-status-card">
+                            <div class="kpi-header">
+                                <span class="kpi-title">LAMBDA INGEST</span>
+                                <span class="kpi-icon-svg lightning">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-lambda">Online</div>
+                            <div class="kpi-desc">SQS-to-DynamoDB engine</div>
+                        </div>
+                        <div class="kpi-card alarm-status-card">
+                            <div class="kpi-header">
+                                <span class="kpi-title">ALARM THRESHOLDS</span>
+                                <span class="kpi-icon-svg bell">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value skeleton-text" id="kpi-alarms">OK</div>
+                            <div class="kpi-desc">Active alert thresholds</div>
+                        </div>
+                    </section>
+    
+                    <!-- Visualization Row -->
+                    <section class="charts-row">
+                        <div class="chart-card glass-panel fade-in" style="animation-delay: 0.3s">
+                            <div class="chart-header">
+                                <h3>Severity Distribution</h3>
+                            </div>
+                            <div class="chart-container skeleton-box" id="pie-skeleton">
+                                <canvas id="levelPieChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card glass-panel fade-in" style="animation-delay: 0.35s">
+                            <div class="chart-header">
+                                <h3>Total Logs by Service</h3>
+                            </div>
+                            <div class="chart-container skeleton-box" id="bar-skeleton">
+                                <canvas id="serviceBarChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card glass-panel span-2 fade-in" style="animation-delay: 0.4s">
+                            <div class="chart-header">
+                                <h3>Telemetry Activity Timeline</h3>
+                            </div>
+                            <div class="chart-container skeleton-box" id="timeline-skeleton">
+                                <canvas id="timelineChart"></canvas>
+                            </div>
+                        </div>
+                    </section>
+    
+                    <!-- Recent Logs Overview -->
+                    <section class="table-section glass-panel fade-in" style="animation-delay: 0.45s" aria-label="Recent Logs">
+                        <div class="table-section-header">
+                            <h3>Ingested Event Stream</h3>
+                            <button class="btn secondary-btn" id="btn-dashboard-view-all">
+                                View in Explorer
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="table-container">
+                            <table class="dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Timestamp</th>
+                                        <th scope="col">Service</th>
+                                        <th scope="col">Severity</th>
+                                        <th scope="col">Log Message</th>
+                                        <th scope="col">Request ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-recent-logs-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- VIEW 2: LOG EXPLORER -->
+                <div id="view-explorer-panel" class="spa-view hidden">
+                    <section class="table-section glass-panel fade-in">
+                        <div class="toolbar">
+                            <div class="toolbar-left">
+                                <div class="filter-group">
+                                    <label for="service-filter">Service</label>
+                                    <select id="service-filter" class="filter-dropdown">
+                                        <option value="ALL">All Services</option>
+                                        <option value="payment-service">payment-service</option>
+                                        <option value="inventory-service">inventory-service</option>
+                                        <option value="order-service">order-service</option>
+                                        <option value="auth-service">auth-service</option>
+                                        <option value="user-service">user-service</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="level-filter">Severity</label>
+                                    <select id="level-filter" class="filter-dropdown">
+                                        <option value="ALL">All Severities</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                        <option value="CRITICAL">CRITICAL</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="time-filter">Time Window</label>
+                                    <select id="time-filter" class="filter-dropdown">
+                                        <option value="ALL">All Time</option>
+                                        <option value="15m">Last 15 Minutes</option>
+                                        <option value="1h">Last 1 Hour</option>
+                                        <option value="24h">Last 24 Hours</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="toolbar-right">
+                                <div class="filter-group search-group">
+                                    <label for="search-input">Text Search</label>
+                                    <div class="search-wrapper">
+                                        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                        </svg>
+                                        <input type="text" id="search-input" placeholder="Search message, req ID..." class="search-box" aria-label="Search logs text">
+                                    </div>
+                                </div>
+                                <div class="action-buttons-group">
+                                    <button id="clear-filters-btn" class="btn" aria-label="Clear all filter inputs">Clear</button>
+                                    <button id="toolbar-refresh-btn" class="btn text-btn" title="Refresh Log Entries" aria-label="Refresh Log Entries">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Export & Limits bar -->
+                        <div class="explorer-action-bar">
+                            <div class="explorer-action-left">
+                                <span class="results-count" id="results-count-label">Showing 0 matching events</span>
+                            </div>
+                            <div class="explorer-action-right">
+                                <button class="btn text-btn btn-sm" id="btn-export-csv">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    Export CSV
+                                </button>
+                                <button class="btn text-btn btn-sm" id="btn-export-json">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    Export JSON
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="logs-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Timestamp</th>
+                                        <th scope="col">Service</th>
+                                        <th scope="col">Severity</th>
+                                        <th scope="col">Log Message</th>
+                                        <th scope="col">Request ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-table-body">
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                            
+                            <!-- Empty State Wrapper -->
+                            <div id="empty-state" class="empty-state hidden">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <h3>No Logs Match Criteria</h3>
+                                <p>No log traces found matching your active filter configuration.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="pagination">
+                            <button id="prev-page" class="btn" disabled aria-label="Previous Page">Previous</button>
+                            <span id="page-info">Page 1 of 1</span>
+                            <button id="next-page" class="btn" disabled aria-label="Next Page">Next</button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- VIEW 3: ALARMS MANAGEMENT -->
+                <div id="view-alarms-panel" class="spa-view hidden">
+                    <!-- Metric status grid -->
+                    <div class="alarms-stats-grid">
+                        <div class="stat-box warning">
+                            <span class="stat-num" id="alarm-count-active">1</span>
+                            <span class="stat-title">Active Alerts</span>
+                        </div>
+                        <div class="stat-box success">
+                            <span class="stat-num" id="alarm-count-ok">3</span>
+                            <span class="stat-title">OK Alarms</span>
+                        </div>
+                        <div class="stat-box info">
+                            <span class="stat-num" id="alarm-count-total">4</span>
+                            <span class="stat-title">Configured Alarms</span>
+                        </div>
+                    </div>
+
+                    <!-- Configured alarms grid -->
+                    <div class="alarms-grid">
+                        <div class="alarm-config-card glass-panel alarm-triggered">
+                            <div class="alarm-header-row">
+                                <div class="alarm-meta">
+                                    <span class="badge badge-error">ALARM</span>
+                                    <h4>auth-service-critical-errors</h4>
+                                </div>
+                                <label class="switch-toggle" title="Enable/Disable Alarm">
+                                    <input type="checkbox" checked class="alarm-toggle-checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="alarm-desc">Triggers when auth-service writes any CRITICAL severity logs.</p>
+                            <div class="alarm-metrics-detail">
+                                <div class="metric-row">
+                                    <span>Metric Name:</span>
+                                    <strong>auth-service.critical.count</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Trigger Condition:</span>
+                                    <strong>Sum &gt; 0 (1 Minute Window)</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>SNS Topic Endpoint:</span>
+                                    <code class="code-block">arn:aws:sns:ap-south-1:123456789:cloudpulse-alerts</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alarm-config-card glass-panel">
+                            <div class="alarm-header-row">
+                                <div class="alarm-meta">
+                                    <span class="badge badge-info">OK</span>
+                                    <h4>payment-service-failure-rate</h4>
+                                </div>
+                                <label class="switch-toggle" title="Enable/Disable Alarm">
+                                    <input type="checkbox" checked class="alarm-toggle-checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="alarm-desc">Triggers when HTTP 500 error code count in payment-service logs exceeds 5% of requests.</p>
+                            <div class="alarm-metrics-detail">
+                                <div class="metric-row">
+                                    <span>Metric Name:</span>
+                                    <strong>payment-service.failure.rate</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Trigger Condition:</span>
+                                    <strong>Average &gt; 5% (5 Minute Window)</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>SNS Topic Endpoint:</span>
+                                    <code class="code-block">arn:aws:sns:ap-south-1:123456789:cloudpulse-alerts</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alarm-config-card glass-panel">
+                            <div class="alarm-header-row">
+                                <div class="alarm-meta">
+                                    <span class="badge badge-info">OK</span>
+                                    <h4>inventory-service-db-timeout</h4>
+                                </div>
+                                <label class="switch-toggle" title="Enable/Disable Alarm">
+                                    <input type="checkbox" checked class="alarm-toggle-checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="alarm-desc">Triggers on DynamoDB query timeouts or exceptions in inventory service.</p>
+                            <div class="alarm-metrics-detail">
+                                <div class="metric-row">
+                                    <span>Metric Name:</span>
+                                    <strong>inventory-service.db.timeout</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Trigger Condition:</span>
+                                    <strong>Sum &gt;= 3 (5 Minute Window)</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>SNS Topic Endpoint:</span>
+                                    <code class="code-block">arn:aws:sns:ap-south-1:123456789:cloudpulse-alerts</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alarm-config-card glass-panel">
+                            <div class="alarm-header-row">
+                                <div class="alarm-meta">
+                                    <span class="badge badge-info">OK</span>
+                                    <h4>sqs-ingestion-backlog</h4>
+                                </div>
+                                <label class="switch-toggle" title="Enable/Disable Alarm">
+                                    <input type="checkbox" checked class="alarm-toggle-checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <p class="alarm-desc">Triggers when SQS queue messages backlog exceeds 1,000 pending items.</p>
+                            <div class="alarm-metrics-detail">
+                                <div class="metric-row">
+                                    <span>Metric Name:</span>
+                                    <strong>sqs.backlog.depth</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Trigger Condition:</span>
+                                    <strong>Max &gt; 1000 (1 Minute Window)</strong>
+                                </div>
+                                <div class="metric-row">
+                                    <span>SNS Topic Endpoint:</span>
+                                    <code class="code-block">arn:aws:sns:ap-south-1:123456789:cloudpulse-alerts</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alarm history log -->
+                    <section class="table-section glass-panel">
+                        <div class="table-section-header">
+                            <h3>Alarm State Transition History</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="alarms-history-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Timestamp</th>
+                                        <th scope="col">Alarm Name</th>
+                                        <th scope="col">Transition</th>
+                                        <th scope="col">Trigger Event Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="alarms-history-body">
+                                    <!-- Dynamic populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- VIEW 4: SYSTEM SETTINGS -->
+                <div id="view-settings-panel" class="spa-view hidden">
+                    <div class="settings-grid">
+                        <!-- Left Settings Form -->
+                        <div class="settings-card glass-panel">
+                            <h3>Console Preferences</h3>
+                            <p class="settings-subtitle">Configure refresh behaviors and layout options</p>
+                            <div class="dropdown-divider"></div>
+                            
+                            <form id="console-settings-form">
+                                <div class="setting-form-group">
+                                    <label class="setting-label-title">Auto-Refresh Enable</label>
+                                    <p class="setting-label-desc">Automatically fetch new logs at intervals</p>
+                                    <label class="switch-toggle">
+                                        <input type="checkbox" id="settings-refresh-enable" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div class="setting-form-group">
+                                    <label for="settings-refresh-interval" class="setting-label-title">Refresh Frequency</label>
+                                    <p class="setting-label-desc">Select how often the log data is pulled from DynamoDB</p>
+                                    <select id="settings-refresh-interval" class="filter-dropdown full-width">
+                                        <option value="10000">10 Seconds</option>
+                                        <option value="30000" selected>30 Seconds</option>
+                                        <option value="60000">1 Minute</option>
+                                        <option value="300000">5 Minutes</option>
+                                    </select>
+                                </div>
+
+                                <div class="setting-form-group">
+                                    <label class="setting-label-title">Dashboard Theme</label>
+                                    <p class="setting-label-desc">Switch between modern light and dark modes</p>
+                                    <div class="theme-picker-buttons">
+                                        <button type="button" class="btn active" id="theme-btn-dark">Dark Mode</button>
+                                        <button type="button" class="btn" id="theme-btn-light">Light Mode</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Right Settings Form - Cloud Configuration -->
+                        <div class="settings-card glass-panel">
+                            <h3>Mock AWS & Endpoint Settings</h3>
+                            <p class="settings-subtitle">Manage backend API connections and mock seed actions</p>
+                            <div class="dropdown-divider"></div>
+
+                            <form id="aws-settings-form">
+                                <div class="form-row-2">
+                                    <div class="form-input-group">
+                                        <label for="settings-environment" class="setting-label-title-sm">Active Environment</label>
+                                        <select id="settings-environment" class="filter-dropdown full-width">
+                                            <option value="DEV" selected>DEV (Development)</option>
+                                            <option value="STAGING">STAGING</option>
+                                            <option value="PROD">PROD (Production)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-input-group">
+                                        <label for="settings-region" class="setting-label-title-sm">AWS Region</label>
+                                        <input type="text" id="settings-region" value="ap-south-1" class="search-box full-width" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-input-group">
+                                    <label for="settings-endpoint" class="setting-label-title-sm">Mock API Endpoint URL</label>
+                                    <input type="url" id="settings-endpoint" value="http://localhost:3000" class="search-box full-width" required>
+                                </div>
+
+                                <div class="settings-actions">
+                                    <button type="button" id="btn-seed-logs" class="btn primary-btn">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 2 22 22 22"/></svg>
+                                        Simulate Telemetry Surge
+                                    </button>
+                                    <button type="submit" class="btn secondary-btn">Save Environment Config</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="dashboard-footer">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <strong>CloudPulse</strong> AWS Serverless Monitoring &bull; Version 1.0.0
+                    </div>
+                    <div class="footer-right">
+                        Powered by AWS Lambda | DynamoDB | SQS | SNS | Chart.js
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
