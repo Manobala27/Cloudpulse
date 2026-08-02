@@ -12,6 +12,6 @@
     "eslint": "^8.57.0",
     "htmlhint": "^1.0.0",
     "stylelint": "^16.6.1",
-    "stylelint-config-standard": "^36.0.1"
+    "stylelint-config-standard": "^40.0.0"
   }
 }
