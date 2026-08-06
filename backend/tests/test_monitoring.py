@@ -89,3 +89,6 @@ def test_metrics_emission(capsys):
 
     captured = capsys.readouterr()
     assert "LoginSuccess" in captured.out
+
+
+# Trigger build
