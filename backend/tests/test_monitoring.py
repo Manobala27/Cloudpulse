@@ -1,12 +1,20 @@
 import json
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 # Set required env vars for powertools before importing
 os.environ["POWERTOOLS_SERVICE_NAME"] = "test-service"
 os.environ["POWERTOOLS_METRICS_NAMESPACE"] = "CloudPulse"
 os.environ["POWERTOOLS_TRACE_DISABLED"] = "1"
+os.environ["JWT_SECRET"] = "test-secret"
+os.environ["DEMO_USERNAME"] = "admin"
+import bcrypt
 
+mock_hash = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode("utf-8")
+os.environ["DEMO_PASSWORD_HASH"] = mock_hash
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import log_processor
 import log_query
 import login
