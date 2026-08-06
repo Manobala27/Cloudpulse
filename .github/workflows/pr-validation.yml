@@ -34,7 +34,14 @@ jobs:
         run: ruff check .
 
       - name: Run Pytest
-        run: python -m pytest backend/
+        run: |
+          if ! python -m pytest backend/ > pytest_out.log 2>&1; then
+            echo "### Pytest Failed" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat pytest_out.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
   validate-sam:
     name: AWS SAM Validation
