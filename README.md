@@ -266,11 +266,29 @@ concurrency:
 
 ## 11. Screenshots
 
-*(To add live pictures or screenshots of your dashboard in action, drop the images into the `docs/assets/` directory and update the markdown links below)*
+### Login Page
 
-| Login Interface | Metrics Dashboard |
-| --- | --- |
-| ![Login Page Placeholder](docs/assets/login_placeholder.png)<br>*Placeholder: Place a screenshot of login.html here* | ![Dashboard Page Placeholder](docs/assets/dashboard_placeholder.png)<br>*Placeholder: Place a screenshot of index.html here* |
+An authenticated portal requiring username and password credentials. It authenticates users against stored hash signatures and issues short-lived JWT authorization tokens.
+
+![CloudPulse Login](docs/assets/screenshots/login-page.png)
+
+### Dashboard Overview
+
+The main operational panel displaying real-time telemetry, including active alarms count, log severity status KPIs, service activity charts, and log event tables.
+
+![CloudPulse Dashboard Overview](docs/assets/screenshots/dashboard-overview.png)
+
+### Log Explorer
+
+A powerful search interface filtering logs dynamically by service origin, severity level, time window, or key-phrase searches.
+
+![CloudPulse Log Explorer](docs/assets/screenshots/log-explorer.png)
+
+### Alarms & Monitoring
+
+A dedicated alerting page outlining configured alarm triggers (e.g., JVM memory allocation limits, DB locking, and SQS queue depth backlogs).
+
+![CloudPulse Alarms](docs/assets/screenshots/alarms-monitoring.png)
 
 ---
 
