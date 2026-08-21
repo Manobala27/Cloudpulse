@@ -15,7 +15,8 @@ import log_query
 importlib.reload(log_query)
 
 
-def test_health_endpoint():
+@patch("log_query.table")
+def test_health_endpoint(mock_table):
     event = {"path": "/health", "httpMethod": "GET"}
     response = log_query.lambda_handler(event, None)
 

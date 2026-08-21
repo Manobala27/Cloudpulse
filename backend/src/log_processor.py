@@ -19,10 +19,9 @@ ALERT_LEVELS = {"ERROR", "CRITICAL"}
 table_name = os.getenv("DYNAMODB_TABLE_NAME")
 sns_topic_arn = os.getenv("SNS_TOPIC_ARN")
 
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(table_name) if table_name else None
-
-sns_client = boto3.client("sns")
+dynamodb = None
+table = None
+sns_client = None
 
 
 @tracer.capture_lambda_handler
@@ -71,6 +70,15 @@ def lambda_handler(event, context):
                 continue
 
             # 4. Store in DynamoDB
+            global table, dynamodb
+            if table is None and table_name:
+                try:
+                    if dynamodb is None:
+                        dynamodb = boto3.resource("dynamodb")
+                    table = dynamodb.Table(table_name)
+                except Exception as e:
+                    logger.error(f"Failed to initialize DynamoDB table: {e}")
+
             if not table:
                 logger.error("DYNAMODB_TABLE_NAME is not set, cannot store log.")
                 continue
@@ -125,6 +133,9 @@ def lambda_handler(event, context):
                         "status": "ALERT_TRIGGERED",
                     }
                     try:
+                        global sns_client
+                        if sns_client is None:
+                            sns_client = boto3.client("sns")
                         sns_client.publish(
                             TopicArn=sns_topic_arn,
                             Message=json.dumps(alert_payload),

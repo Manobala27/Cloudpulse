@@ -12,8 +12,8 @@ tracer = Tracer(service="log-query")
 metrics = Metrics(namespace="CloudPulse", service="log-query")
 
 table_name = os.getenv("DYNAMODB_TABLE_NAME")
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(table_name) if table_name else None
+dynamodb = None
+table = None
 
 
 def build_response(status_code, body):
@@ -35,6 +35,15 @@ def build_response(status_code, body):
 @tracer.capture_lambda_handler
 @metrics.log_metrics(capture_cold_start=True)
 def lambda_handler(event, context):
+    global table, dynamodb
+    if table is None and table_name:
+        try:
+            if dynamodb is None:
+                dynamodb = boto3.resource("dynamodb")
+            table = dynamodb.Table(table_name)
+        except Exception as e:
+            logger.error(f"Failed to initialize DynamoDB table: {e}")
+
     logger.append_keys(
         request_id=event.get("requestContext", {}).get("requestId", "UNKNOWN")
     )
