@@ -298,7 +298,38 @@ A dedicated alerting page outlining configured alarm triggers (e.g., JVM memory 
 
 ---
 
-## 13. Future Roadmap / Improvements
+## 13. Application Integration: CloudVault
+
+CloudPulse actively monitors **CloudVault**, a production cloud file storage and sharing web application.
+
+```
+CloudVault Application Events
+  (Uploads, Downloads, Deletions, Shares, Logins, Restores)
+              │
+              ▼
+   POST /logs (API Gateway)
+              │
+              ▼
+    Amazon SQS Buffer
+              │
+              ▼
+   AWS Lambda Log Processor
+        │           │
+        ▼           ▼
+  Amazon DynamoDB   Amazon SNS (ERROR/CRITICAL Alerts)
+        │
+        ▼
+CloudPulse Real-Time Dashboard
+```
+
+* **Producer**: CloudVault (`app.services.cloudpulse_service.cloudpulse_service`)
+* **Consumer**: CloudPulse (`log_processor.py` Lambda via SQS)
+* **Storage**: Amazon DynamoDB (`cloudpulse-logs-dev` / `cloudpulse-logs-prod`)
+* **Alerting**: Amazon SNS Topic (`cloudpulse-alerts-dev`)
+
+---
+
+## 14. Future Roadmap / Improvements
 * **Advanced Slicing and Query Filters**: Implement text/keyword-based search indexation using OpenSearch or DynamoDB query parameter filters.
 * **Multi-Factor Authentication**: Shift authentication to AWS Cognito user pools with built-in email verification.
 * **Auto-Scaling Log Ingestion**: Configure SQS queue autoscale throttle rates using event source mapping configurations.

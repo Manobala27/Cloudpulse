@@ -20,6 +20,7 @@ os.environ["AWS_DEFAULT_REGION"] = "ap-south-1"
 os.environ["POWERTOOLS_SERVICE_NAME"] = "local-backend"
 
 import authorizer
+import log_processor
 import log_query
 import login
 
@@ -87,6 +88,31 @@ class LocalAPIGatewayHandler(BaseHTTPRequestHandler):
                 )
             except Exception as e:
                 self.send_response_clean(500, {}, json.dumps({"message": str(e)}))
+
+        elif path == "/logs":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8")
+
+            # Emulate SQS trigger to log_processor
+            try:
+                sqs_event = {
+                    "Records": [
+                        {
+                            "messageId": "local-mock-msg",
+                            "body": body,
+                        }
+                    ]
+                }
+                log_processor.lambda_handler(sqs_event, None)
+            except Exception as e:
+                print(f"[Local Mock API Gateway] Processor simulation note: {e}")
+
+            # API Gateway returns 202 Accepted
+            self.send_response_clean(
+                202,
+                {"Content-Type": "application/json"},
+                json.dumps({"message": "Log accepted for asynchronous processing"}),
+            )
         else:
             self.send_response_clean(404, {}, json.dumps({"message": "Not Found"}))
 
